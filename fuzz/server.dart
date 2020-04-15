@@ -21,13 +21,13 @@ Future main() async {
       y.versionType = y.tokenType;
 
       if (y.transactionType == "GENESIS") {
-          y.symbol         = hex.encode(utf8.encode(y.data.ticker)).toUpperCase();
-          y.name           = hex.encode(utf8.encode(y.data.name)).toUpperCase();
-          y.documentUri    = hex.encode(utf8.encode(y.data.documentUri)).toUpperCase();
+          y.symbol         = hex.encode(y.data.ticker).toUpperCase();
+          y.name           = hex.encode(y.data.name).toUpperCase();
+          y.documentUri    = hex.encode(y.data.documentUri).toUpperCase();
           if (y.data.documentHash == null) {
               y.documentSha256 = "";
           }
-          y.documentSha256 = hex.encode(utf8.encode(y.data.documentHash)).toUpperCase();
+          y.documentSha256 = hex.encode(y.data.documentHash).toUpperCase();
       }
 
       if (y.data.hasOwnProperty("decimals")) {
