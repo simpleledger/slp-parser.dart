@@ -12,10 +12,6 @@ void main() {
         final Map<String, Object> exp = testcase["parsed"];
         final Map<String, Object> data = exp["data"];
         if (slpMsg["transactionType"] == "GENESIS") {
-          //exp["ticker"] = utf8.encode(exp["ticker"]);
-          //exp["name"] = utf8.encode(exp["name"]);
-          //exp["documentUri"] = utf8.encode(exp["documentUri"]);
-          //exp["documentHash"] = hex.decode(exp["documentHash"]);
           data["qty"] = BigInt.parse(data["qty"]);
         } else if (slpMsg["transactionType"] == "MINT") {
           data["tokenId"] = hex.decode(data["tokenId"]);
