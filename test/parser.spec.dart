@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'package:convert/convert.dart';
 
-import 'package:slp_parser/slp-parser.dart';
+import 'package:slp_parser/slp_parser.dart';
 import './script_tests.dart';
 
 void main() {
