@@ -1,0 +1,8 @@
+name: slp_parser
+version: 0.0.1
+license: MIT
+homepage: https://github.com/simpleledger/slp-parser.dart
+dependencies:
+    convert: ^2.1.1
+dev_dependencies:
+    test: ^1.14.2
