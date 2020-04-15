@@ -1,3 +1,7 @@
+## 0.0.3 (not published)
+### Modified
+    * Deleted .ts file used during porting process
+
 ## 0.0.2
 ### Modified
     * Updated pubspec
