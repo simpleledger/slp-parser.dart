@@ -76,16 +76,16 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
     var b1 = BigInt.from(r1);
     var b2 = BigInt.from(r2);
     if (endian == Endian.big) {
-      return (b1 * BigInt.from(pow(2, 32).toInt())) + b2;
+      return (b1 * BigInt.from(2).pow(32)) + b2;
     } else {
-      return (b2 * BigInt.from(pow(2, 32).toInt())) + b1;
+      return (b2 * BigInt.from(2).pow(32)) + b1;
     }
   };
 
   PARSE_CHECK(itObj.lengthInBytes == 0, "scriptpubkey cannot be empty");
   PARSE_CHECK(itObj.buffer.asByteData().getUint8(it) != OP_RETURN, "scriptpubkey not op_return" );
   PARSE_CHECK(itObj.lengthInBytes < 10 ,"scriptpubkey too small" );
-  ++ it;
+  ++it;
 
   final extractPushdata = /* num */ () {
     if (it == itObj.length) { return - 1;} 
