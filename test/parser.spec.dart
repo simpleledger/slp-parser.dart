@@ -8,21 +8,22 @@ void main() {
   testdata.forEach((testcase) {
     test(testcase["msg"], () {
       if (testcase["code"] == null) {
-        var slpMsg = parseSLP(hex.decode(testcase["script"]));
+        final ParseResult slpMsg = parseSLP(hex.decode(testcase["script"]));
         final Map<String, Object> exp = testcase["parsed"];
         final Map<String, Object> data = exp["data"];
-        if (slpMsg["transactionType"] == "GENESIS") {
+        if (slpMsg.transactionType == "GENESIS") {
           data["qty"] = BigInt.parse(data["qty"]);
-        } else if (slpMsg["transactionType"] == "MINT") {
+        } else if (slpMsg.transactionType == "MINT") {
           data["tokenId"] = hex.decode(data["tokenId"]);
           data["qty"] = BigInt.parse(data["qty"]);
-        } else if (slpMsg["transactionType"] == "SEND") {
+        } else if (slpMsg.transactionType == "SEND") {
           data["tokenId"] = hex.decode(data["tokenId"]);
           var amounts = (data["amounts"] as List<String>).map((a) { return BigInt.parse(a);}).toList() as List<BigInt>;
           data["amounts"] = amounts;
         }
         exp["data"] = data;
-        expect(slpMsg, exp);
+        final slpMsgMap = slpMsg.toMap(raw: true);
+        expect(slpMsgMap, exp);
       } else {
         var throws = true;
         try {

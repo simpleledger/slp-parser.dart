@@ -5,12 +5,11 @@ This package is for parsing [Simple Ledger Protocol (SLP)](https://github.com/si
 
 ## Usage
 
-```
-var List<int> op_return = [ 106, 4, 83, 76, 80, 0, 1, 1, 7, 
-                            71, 69, 78, 69, 83, 73, 83, 76, 
-                            0, 76, 0, 76, 0, 76, 0, 1, 0, 76, 
-                            0, 8, 0, 0, 0, 0, 0, 0, 0, 100 ];
-var slpMsg = parseSLP(op_return);
+```dart
+  var scriptPubKey = '6a04534c500001010747454e455349530ce3838ae382abe383a2e383884c004c004c0001094c00080000000000000064';
+  var slpMsg = parseSLP(hex.decode(scriptPubKey));
+  print('Parsed results (raw form):\n ${slpMsg.toMap(raw: true)}');
+  print('Parsed results (readable form):\n ${slpMsg.toMap()}');
 ```
 
 ## Test

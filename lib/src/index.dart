@@ -1,44 +1,81 @@
 import 'dart:typed_data';
-import 'dart:math';
 import 'dart:convert';
+import 'package:convert/convert.dart';
 
-abstract class GenesisParseResult { 
-  List<int> ticker;
-  List<int> name;
-  List<int> documentUri;
-  List<int> documentHash;
+class GenesisParseResult {
+  List<int> tickerBuf, nameBuf, documentUriBuf, documentHashBuf;
   int decimals;
   int mintBatonVout;
-  double qty;
+  BigInt qty;
+  String get ticker { return utf8.decode(this.tickerBuf); }
+  String get name { return utf8.decode(this.nameBuf); }
+  String get documentUri { return utf8.decode(this.documentUriBuf); }
+  String get documentHash { return hex.encode(this.documentHashBuf); }
+  GenesisParseResult({this.tickerBuf, this.nameBuf, this.documentUriBuf, this.documentHashBuf, this.decimals, this.mintBatonVout, this.qty});
+  Map<String, Object> toMap({raw=false}) {
+    return {
+      "ticker": raw ? this.tickerBuf : this.ticker,
+      "name": raw ? this.nameBuf : this.name,
+      "documentUri": raw ? this.documentUriBuf : this.documentUri,
+      "documentHash": raw ? this.documentHashBuf : this.documentHash,
+      "decimals": this.decimals,
+      "mintBatonVout": this.mintBatonVout,
+      "qty": this.qty
+    };
+  }
 }
 
-abstract class MintParseResult {
-  List<int> tokenId;
+class MintParseResult {
+  List<int> tokenIdBuf;
   int mintBatonVout;
   BigInt qty;
+  String get tokenId { return hex.encode(this.tokenIdBuf); }
+  MintParseResult({this.tokenIdBuf, this.mintBatonVout, this.qty});
+  Map<String, Object> toMap({raw=false}) {
+    return {
+      "tokenId": raw ? this.tokenIdBuf : this.tokenId,
+      "mintBatonVout": mintBatonVout,
+      "qty": this.qty
+    };
+  }
 } 
 
-abstract class SendParseResult {
-  List<int> tokenId;
+class SendParseResult {
+  List<int> tokenIdBuf;
   List<BigInt> amounts;
+  SendParseResult({this.tokenIdBuf, this.amounts});
+  String get tokenId { return hex.encode(this.tokenIdBuf); }
+  Map<String, Object> toMap({raw=false}) {
+    return {
+      "tokenId": raw ? this.tokenIdBuf : this.tokenId,
+      "amounts": this.amounts
+    };
+  }
 }
 
-abstract class ImpossibleParseResult {
+class ImpossibleParseResult {
 }
 
-abstract class ParseResult {
-  num tokenType;
+class ParseResult {
+  int tokenType;
   String transactionType;
-  dynamic data;/* GenesisParseResult | MintParseResult | SendParseResult | ImpossibleParseResult */
+  dynamic data; /* GenesisParseResult | MintParseResult | SendParseResult | ImpossibleParseResult */
+  ParseResult({this.tokenType, this.transactionType, this.data});
+  Map<String, Object> toMap({raw: false}) {
+    return {
+      "tokenType": tokenType,
+      "transactionType": transactionType,
+      "data": data.toMap(raw: raw)
+    };
+  }
 }
 
-final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
+ParseResult parseSLP(List<int> scriptpubkey) {
   int it = 0;
-  var itObj = new Uint8List(scriptpubkey.length);
+  var itObj = Uint8List(scriptpubkey.length);
   itObj.setAll(0, scriptpubkey);
 
   const int OP_0 = 0x00;
-  const int OP_16 = 0x60;
   const int OP_RETURN = 0x6a;
   const int OP_PUSHDATA1 = 0x4c;
   const int OP_PUSHDATA2 = 0x4d;
@@ -91,16 +128,16 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
     if (it == itObj.length) { return - 1;} 
     final int cnt = extractU8();
     if (cnt > OP_0 && cnt < OP_PUSHDATA1) { 
-      if (it + cnt > itObj.length) { --it;return - 1;} 
+      if (it + cnt > itObj.length) { --it; return - 1;} 
       return cnt;
     } else if (cnt == OP_PUSHDATA1) {
-      if (it + 1 >= itObj.length) { --it;return - 1;} 
+      if (it + 1 >= itObj.length) { --it; return - 1;} 
       return extractU8();
     } else if (cnt == OP_PUSHDATA2) {
-      if (it + 2 >= itObj.length ) { --it;return - 1;} 
+      if (it + 2 >= itObj.length ) { --it; return - 1;} 
       return extractU16(Endian.little);
     } else if (cnt == OP_PUSHDATA4) { 
-      if (it + 4 >= itObj.length ) { --it;return - 1;} 
+      if (it + 4 >= itObj.length ) { --it; return - 1;} 
       return extractU32(Endian.little);
     }
 
@@ -120,7 +157,7 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
   final checkValidTokenId = (Uint8List tokenId) => tokenId.length == 32;
   final List<Uint8List> chunks = [];
   for (var len = extractPushdata();len >= 0;len = extractPushdata()) {
-    final buf = new Uint8List(len);
+    final buf = Uint8List(len);
     buf.setAll(0, itObj.getRange(it, it + len));
     PARSE_CHECK(it + len > itObj.length, "pushdata data extraction failed" );
     it += len;chunks.add(buf);
@@ -136,7 +173,7 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
   }
 
   PARSE_CHECK (it != itObj.length, "trailing data");
-  PARSE_CHECK (chunks.length == 0, "chunks empty");
+  PARSE_CHECK (chunks.isEmpty, "chunks empty");
   
   var cit = 0;
   final CHECK_NEXT = /* void */ () {
@@ -198,22 +235,22 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
     if (tokenType == 0x41) {
       PARSE_CHECK (decimals != 0, "NFT1 child token must have divisibility set to 0 decimal places" );
       PARSE_CHECK (mintBatonVout != 0, "NFT1 child token must not have a minting baton" );
-      PARSE_CHECK (qty != BigInt.from(1), "NFT1 child token must have quantity of 1" );} 
-      final Map<String, Object> actionData = { // was GenesisParseResult type
-        "ticker" : ticker ,
-        "name" : name ,
-        "documentUri" : documentUri ,
-        "documentHash" : documentHash ,
-        "decimals" : decimals ,
-        "mintBatonVout" : mintBatonVout ,
-        "qty" : qty
-      };
-
-      return { 
-        "tokenType" : tokenType , 
-        "transactionType" : transactionType , 
-        "data" : actionData 
-      };
+      PARSE_CHECK (qty != BigInt.from(1), "NFT1 child token must have quantity of 1" );
+    }
+    final GenesisParseResult actionData = new GenesisParseResult(
+      tickerBuf : ticker ,
+      nameBuf : name ,
+      documentUriBuf : documentUri ,
+      documentHashBuf : documentHash ,
+      decimals : decimals ,
+      mintBatonVout : mintBatonVout ,
+      qty : qty
+    );
+    return new ParseResult( 
+      tokenType : tokenType , 
+      transactionType : transactionType , 
+      data : actionData 
+    );
   } else if (transactionType == "MINT") {
     PARSE_CHECK (tokenType == 0x41, "NFT1 Child cannot have MINT transaction type." );
     
@@ -237,17 +274,17 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
     PARSE_CHECK (additionalQtyBuf.length != 8, "additional_qty must be provided as an 8-byte buffer" );
     final qty = bufferToBN();
 
-    final Map<String, Object> actionData = {
-      "tokenId" : tokenId,
-      "mintBatonVout" : mintBatonVout,
-      "qty" : qty
-    };
+    final actionData = new MintParseResult(
+      tokenIdBuf : tokenId,
+      mintBatonVout : mintBatonVout,
+      qty : qty
+    );
 
-    return {
-      "tokenType" : tokenType,
-      "transactionType" : transactionType,
-      "data" : actionData
-    };
+    return new ParseResult( 
+      tokenType : tokenType,
+      transactionType : transactionType,
+      data : actionData
+    );
   } else if (transactionType == "SEND") {
     PARSE_CHECK (chunks.length < 4, "wrong number of chunks");
     CHECK_NEXT ();
@@ -274,23 +311,23 @@ final parseSLP = /* ParseResult */ (List<int> scriptpubkey) {
     PARSE_CHECK (amounts.length == 0, "token_amounts size is 0");
     PARSE_CHECK (amounts.length > 19, "token_amounts size is greater than 19");
     
-    final Map<String, Object> actionData = { 
-      "tokenId" : tokenId , 
-      "amounts" : amounts
-    };
-    return { 
-      "tokenType" : tokenType,
-      "transactionType" : transactionType,
-      "data" : actionData 
-    };
+    final actionData = new SendParseResult( 
+      tokenIdBuf : tokenId , 
+      amounts : amounts
+    );
+    return new ParseResult( 
+      tokenType : tokenType,
+      transactionType : transactionType,
+      data : actionData 
+    );
   } else {
       PARSE_CHECK (true , "unknown action type");
   }
 
   // unreachable code
-  return { 
-    "tokenType" : tokenType , 
-    "transactionType" : transactionType , 
-    "data" : { } 
-  };
-};
+  return new ParseResult( 
+    tokenType : tokenType , 
+    transactionType : transactionType , 
+    data : new ImpossibleParseResult() 
+  );
+}

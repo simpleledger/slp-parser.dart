@@ -1,5 +1,5 @@
 name: slp_parser
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/simpleledger/slp-parser.dart
 description: Parse Simple Ledger Protocol OP_RETURN data segments with ease!
 dependencies:

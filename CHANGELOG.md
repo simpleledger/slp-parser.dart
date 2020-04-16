@@ -1,5 +1,9 @@
-## 0.0.3 (not published)
+## 0.0.3
+### Added
+    * Implemented classes and toMap methods
+    * Example file
 ### Modified
+    * Fixed linting issues
     * Deleted .ts file used during porting process
 
 ## 0.0.2
