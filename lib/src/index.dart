@@ -11,7 +11,15 @@ class GenesisParseResult {
   String get name { return utf8.decode(this.nameBuf); }
   String get documentUri { return utf8.decode(this.documentUriBuf); }
   String get documentHash { return hex.encode(this.documentHashBuf); }
-  GenesisParseResult({this.tickerBuf, this.nameBuf, this.documentUriBuf, this.documentHashBuf, this.decimals, this.mintBatonVout, this.qty});
+  GenesisParseResult({
+    required this.tickerBuf,
+    required this.nameBuf,
+    required this.documentUriBuf,
+    required this.documentHashBuf,
+    required this.decimals,
+    required this.mintBatonVout,
+    required this.qty
+  });
   Map<String, Object> toMap({raw=false}) {
     return {
       "ticker": raw ? this.tickerBuf : this.ticker,
@@ -30,7 +38,11 @@ class MintParseResult {
   int mintBatonVout;
   BigInt qty;
   String get tokenId { return hex.encode(this.tokenIdBuf); }
-  MintParseResult({this.tokenIdBuf, this.mintBatonVout, this.qty});
+  MintParseResult({
+    required this.tokenIdBuf,
+    required this.mintBatonVout,
+    required this.qty
+  });
   Map<String, Object> toMap({raw=false}) {
     return {
       "tokenId": raw ? this.tokenIdBuf : this.tokenId,
@@ -43,7 +55,10 @@ class MintParseResult {
 class SendParseResult {
   List<int> tokenIdBuf;
   List<BigInt> amounts;
-  SendParseResult({this.tokenIdBuf, this.amounts});
+  SendParseResult({
+    required this.tokenIdBuf,
+    required this.amounts
+  });
   String get tokenId { return hex.encode(this.tokenIdBuf); }
   Map<String, Object> toMap({raw=false}) {
     return {
@@ -60,7 +75,11 @@ class ParseResult {
   int tokenType;
   String transactionType;
   dynamic data; /* GenesisParseResult | MintParseResult | SendParseResult | ImpossibleParseResult */
-  ParseResult({this.tokenType, this.transactionType, this.data});
+  ParseResult({
+    required this.tokenType,
+    required this.transactionType,
+    this.data
+  });
   Map<String, Object> toMap({raw: false}) {
     return {
       "tokenType": tokenType,
@@ -70,10 +89,10 @@ class ParseResult {
   }
 }
 
-ParseResult parseSLP(List<int> scriptpubkey) {
+ParseResult parseSLP(List<int> scriptPubKey) {
   int it = 0;
-  var itObj = Uint8List(scriptpubkey.length);
-  itObj.setAll(0, scriptpubkey);
+  var itObj = Uint8List(scriptPubKey.length);
+  itObj.setAll(0, scriptPubKey);
 
   const int OP_0 = 0x00;
   const int OP_RETURN = 0x6a;
@@ -125,32 +144,40 @@ ParseResult parseSLP(List<int> scriptpubkey) {
   ++it;
 
   final extractPushdata = /* num */ () {
-    if (it == itObj.length) { return - 1;} 
+    if (it == itObj.length) { return -1;}
     final int cnt = extractU8();
     if (cnt > OP_0 && cnt < OP_PUSHDATA1) { 
-      if (it + cnt > itObj.length) { --it; return - 1;} 
+      if (it + cnt > itObj.length) { --it; return -1;} 
       return cnt;
     } else if (cnt == OP_PUSHDATA1) {
-      if (it + 1 >= itObj.length) { --it; return - 1;} 
+      if (it + 1 >= itObj.length) { --it; return -1;} 
       return extractU8();
     } else if (cnt == OP_PUSHDATA2) {
-      if (it + 2 >= itObj.length ) { --it; return - 1;} 
+      if (it + 2 >= itObj.length ) { --it; return -1;} 
       return extractU16(Endian.little);
     } else if (cnt == OP_PUSHDATA4) { 
-      if (it + 4 >= itObj.length ) { --it; return - 1;} 
+      if (it + 4 >= itObj.length ) { --it; return -1;}
       return extractU32(Endian.little);
     }
 
     // other opcodes not allowed
     --it;
-    return - 1;
+    return -1;
   };
 
   final bufferToBN = /* BN */ () {
-    if (itObj.length == 1) return extractU8();
-    if (itObj.length == 2) return extractU16(Endian.big);
-    if (itObj.length == 4) return extractU32(Endian.big);
-    if (itObj.length == 8) return extractU64(Endian.big);
+    if (itObj.length == 1) {
+      return BigInt.from(extractU8());
+    }
+    if (itObj.length == 2) {
+      return BigInt.from(extractU16(Endian.big));
+    }
+    if (itObj.length == 4) {
+      return BigInt.from(extractU32(Endian.big));
+    }
+    if (itObj.length == 8) {
+      return extractU64(Endian.big);
+    }
     throw("extraction of number from buffer failed");
   };
 
@@ -160,11 +187,12 @@ ParseResult parseSLP(List<int> scriptpubkey) {
     final buf = Uint8List(len);
     buf.setAll(0, itObj.getRange(it, it + len));
     PARSE_CHECK(it + len > itObj.length, "pushdata data extraction failed" );
-    it += len;chunks.add(buf);
+    it += len;
+    chunks.add(buf);
     if (chunks.length == 1) {
       final lokadIdStr = chunks[0];
-      PARSE_CHECK (lokadIdStr.length != 4, "lokad id wrong size");
-      PARSE_CHECK (
+      PARSE_CHECK(lokadIdStr.length != 4, "lokad id wrong size");
+      PARSE_CHECK(
           lokadIdStr.buffer.asByteData().getUint8(0) != "S".codeUnitAt(0)
         || lokadIdStr.buffer.asByteData().getUint8(1) != "L".codeUnitAt(0)
         || lokadIdStr.buffer.asByteData().getUint8(2) != "P".codeUnitAt(0)
@@ -172,126 +200,135 @@ ParseResult parseSLP(List<int> scriptpubkey) {
     }
   }
 
-  PARSE_CHECK (it != itObj.length, "trailing data");
-  PARSE_CHECK (chunks.isEmpty, "chunks empty");
+  PARSE_CHECK(it != itObj.length, "trailing data");
+  PARSE_CHECK(chunks.isEmpty, "chunks empty");
   
   var cit = 0;
   final CHECK_NEXT = /* void */ () {
     ++cit;
-    PARSE_CHECK (cit == chunks.length, "parsing ended early");
+    PARSE_CHECK(cit == chunks.length, "parsing ended early");
     it = 0;
     itObj = chunks[cit];
   };
-  CHECK_NEXT ();
+  CHECK_NEXT();
 
-  final tokenTypeBuf = itObj;//.reversed;
-  PARSE_CHECK (tokenTypeBuf.length != 1 && tokenTypeBuf.length != 2,
+  final tokenTypeBuf = itObj;
+  PARSE_CHECK(tokenTypeBuf.length != 1 && tokenTypeBuf.length != 2,
     "token_type string length must be 1 or 2" );
-  final tokenType = bufferToBN();
-  PARSE_CHECK (![ 0x01 , 0x41 , 0x81 ].contains(tokenType),
+  int tokenType = 0;
+  if (tokenTypeBuf.length == 1) {
+    tokenType = extractU8();
+  } else if (tokenTypeBuf.length == 2) {
+    tokenType = extractU16(Endian.big);
+  }
+  PARSE_CHECK(![ 0x01 , 0x41 , 0x81 ].contains(tokenType),
     "token_type not token-type1, nft1-group, or nft1-child" );
-  CHECK_NEXT ();
+  CHECK_NEXT();
 
   final transactionType = utf8.decode(itObj);
   if (transactionType == "GENESIS") { 
-    PARSE_CHECK (chunks.length != 10, "wrong number of chunks" );
-    CHECK_NEXT ();
+    PARSE_CHECK(chunks.length != 10, "wrong number of chunks" );
+    CHECK_NEXT();
 
     final ticker = itObj;
-    CHECK_NEXT ();
-    
+    CHECK_NEXT();
+
     final name = itObj;
-    CHECK_NEXT ();
-    
+    CHECK_NEXT();
+
     final documentUri = itObj;
-    CHECK_NEXT ();
-    
+    CHECK_NEXT();
+
     final documentHash = itObj;
-    PARSE_CHECK (documentHash.length != 0 && documentHash.length != 32 , "document_hash must be size 0 or 32" );
-    CHECK_NEXT ();
-    
+    PARSE_CHECK(documentHash.length != 0 && documentHash.length != 32 , "document_hash must be size 0 or 32" );
+    CHECK_NEXT();
+
     final decimalsBuf = itObj;
-    PARSE_CHECK (decimalsBuf.length != 1, "decimals string length must be 1" );
-    
-    final decimals = bufferToBN() as int;
-    PARSE_CHECK (decimals > 9 ,
+    PARSE_CHECK(decimalsBuf.length != 1, "decimals string length must be 1" );
+
+    final decimals = bufferToBN().toInt();
+    PARSE_CHECK(decimals > 9,
       "decimals bigger than 9" );
-    CHECK_NEXT ();
-    
+    CHECK_NEXT();
+
     final mintBatonVoutBuf = itObj;
-    var mintBatonVout = 0;
-    PARSE_CHECK (mintBatonVoutBuf.length >= 2 , "mint_baton_vout string length must be 0 or 1" );
+    int mintBatonVout = 0;
+    PARSE_CHECK(mintBatonVoutBuf.length >= 2 , "mint_baton_vout string length must be 0 or 1" );
     if (mintBatonVoutBuf.length > 0 ) {
-      mintBatonVout = bufferToBN();
-      PARSE_CHECK (mintBatonVout < 2, "mint_baton_vout must be at least 2" );
+      mintBatonVout = bufferToBN().toInt();
+      PARSE_CHECK(mintBatonVout < 2, "mint_baton_vout must be at least 2" );
     }
-    CHECK_NEXT ();
+    CHECK_NEXT();
 
     final qtyBuf = itObj;//.reversed;
-    PARSE_CHECK (qtyBuf.length != 8 ,
+    PARSE_CHECK(qtyBuf.length != 8 ,
       "initial_qty must be provided as an 8-byte buffer" );
     final qty = bufferToBN();
 
     if (tokenType == 0x41) {
-      PARSE_CHECK (decimals != 0, "NFT1 child token must have divisibility set to 0 decimal places" );
-      PARSE_CHECK (mintBatonVout != 0, "NFT1 child token must not have a minting baton" );
-      PARSE_CHECK (qty != BigInt.from(1), "NFT1 child token must have quantity of 1" );
+      PARSE_CHECK(decimals != 0, "NFT1 child token must have divisibility set to 0 decimal places" );
+      PARSE_CHECK(mintBatonVout != 0, "NFT1 child token must not have a minting baton" );
+      PARSE_CHECK(qty.compareTo(BigInt.from(1)) != 0, "NFT1 child token must have quantity of 1" );
     }
     final GenesisParseResult actionData = new GenesisParseResult(
-      tickerBuf : ticker ,
-      nameBuf : name ,
-      documentUriBuf : documentUri ,
-      documentHashBuf : documentHash ,
-      decimals : decimals ,
-      mintBatonVout : mintBatonVout ,
-      qty : qty
+      tickerBuf: ticker,
+      nameBuf: name,
+      documentUriBuf: documentUri,
+      documentHashBuf: documentHash,
+      decimals: decimals,
+      mintBatonVout: mintBatonVout,
+      qty: qty
     );
-    return new ParseResult( 
-      tokenType : tokenType , 
-      transactionType : transactionType , 
-      data : actionData 
+    return new ParseResult(
+      tokenType: tokenType,
+      transactionType: transactionType,
+      data: actionData
     );
   } else if (transactionType == "MINT") {
-    PARSE_CHECK (tokenType == 0x41, "NFT1 Child cannot have MINT transaction type." );
-    
-    PARSE_CHECK (chunks.length != 6, "wrong number of chunks");
-    CHECK_NEXT ();
-    
+    PARSE_CHECK(tokenType == 0x41, "NFT1 Child cannot have MINT transaction type." );
+
+    PARSE_CHECK(chunks.length != 6, "wrong number of chunks");
+    CHECK_NEXT();
+
     final tokenId = itObj;
-    PARSE_CHECK (! checkValidTokenId(tokenId), "tokenId invalid size");
-    CHECK_NEXT ();
-    
+    PARSE_CHECK(! checkValidTokenId(tokenId), "tokenId invalid size");
+    CHECK_NEXT();
+
     final mintBatonVoutBuf = itObj;
     var mintBatonVout = 0;
-    PARSE_CHECK (mintBatonVoutBuf.length >= 2 , "mint_baton_vout string length must be 0 or 1" );
+    PARSE_CHECK(mintBatonVoutBuf.length >= 2 , "mint_baton_vout string length must be 0 or 1" );
     if (mintBatonVoutBuf.length > 0 ) {
-      mintBatonVout = bufferToBN();
-      PARSE_CHECK (mintBatonVout < 2 , "mint_baton_vout must be at least 2");
+      if (mintBatonVoutBuf.length == 1) {
+        mintBatonVout = extractU8();
+      } else if (mintBatonVoutBuf.length == 2) {
+        mintBatonVout = extractU16(Endian.big);
+      }
+      PARSE_CHECK(mintBatonVout < 2 , "mint_baton_vout must be at least 2");
     }
-    CHECK_NEXT ();
-    
+    CHECK_NEXT();
+
     final additionalQtyBuf = itObj;//.reversed;
-    PARSE_CHECK (additionalQtyBuf.length != 8, "additional_qty must be provided as an 8-byte buffer" );
+    PARSE_CHECK(additionalQtyBuf.length != 8, "additional_qty must be provided as an 8-byte buffer" );
     final qty = bufferToBN();
 
     final actionData = new MintParseResult(
-      tokenIdBuf : tokenId,
-      mintBatonVout : mintBatonVout,
-      qty : qty
+      tokenIdBuf: tokenId,
+      mintBatonVout: mintBatonVout,
+      qty: qty
     );
 
     return new ParseResult( 
-      tokenType : tokenType,
-      transactionType : transactionType,
-      data : actionData
+      tokenType: tokenType,
+      transactionType: transactionType,
+      data: actionData
     );
   } else if (transactionType == "SEND") {
-    PARSE_CHECK (chunks.length < 4, "wrong number of chunks");
-    CHECK_NEXT ();
-    
+    PARSE_CHECK(chunks.length < 4, "wrong number of chunks");
+    CHECK_NEXT();
+
     final tokenId = itObj;
-    PARSE_CHECK (! checkValidTokenId (tokenId ) , "tokenId invalid size");
-    CHECK_NEXT ();
+    PARSE_CHECK(!checkValidTokenId(tokenId ) , "tokenId invalid size");
+    CHECK_NEXT();
 
     final List<BigInt> amounts = [];
     while (cit != chunks.length) {
@@ -308,26 +345,26 @@ ParseResult parseSLP(List<int> scriptpubkey) {
       it = 0;
     }
 
-    PARSE_CHECK (amounts.length == 0, "token_amounts size is 0");
-    PARSE_CHECK (amounts.length > 19, "token_amounts size is greater than 19");
-    
-    final actionData = new SendParseResult( 
-      tokenIdBuf : tokenId , 
-      amounts : amounts
+    PARSE_CHECK(amounts.length == 0, "token_amounts size is 0");
+    PARSE_CHECK(amounts.length > 19, "token_amounts size is greater than 19");
+
+    final actionData = new SendParseResult(
+      tokenIdBuf: tokenId,
+      amounts: amounts
     );
-    return new ParseResult( 
-      tokenType : tokenType,
-      transactionType : transactionType,
-      data : actionData 
+    return new ParseResult(
+      tokenType: tokenType,
+      transactionType: transactionType,
+      data: actionData
     );
   } else {
-      PARSE_CHECK (true , "unknown action type");
+      PARSE_CHECK(true , "unknown action type");
   }
 
   // unreachable code
-  return new ParseResult( 
-    tokenType : tokenType , 
-    transactionType : transactionType , 
-    data : new ImpossibleParseResult() 
+  return new ParseResult(
+    tokenType: tokenType,
+    transactionType: transactionType,
+    data: new ImpossibleParseResult()
   );
 }

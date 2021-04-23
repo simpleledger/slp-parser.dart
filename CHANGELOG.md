@@ -1,3 +1,8 @@
+## 0.1.0
+### Added
+    * Null safety update
+    * Travis config added
+
 ## 0.0.3
 ### Added
     * Implemented classes and toMap methods

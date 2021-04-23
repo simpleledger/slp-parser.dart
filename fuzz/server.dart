@@ -8,7 +8,7 @@ Future main() async {
     InternetAddress.loopbackIPv4,
     8080,
   );
-  print('Listening on localhost:${server.port}');
+  print('Listening on localhost: ${server.port}');
 
   await for (HttpRequest request in server) {
     print(request.uri.toString());
@@ -50,7 +50,7 @@ Future main() async {
           y.sendOutputs = y.data.amounts.map((v) => v.toString());
       }
     } catch(e) {
-      var buf = utf8.encode("{'success': false, 'error:': ${e.message}}");
+      var buf = utf8.encode("{'success': false, 'error:': ${e}}");
       request.headers.add('Content-Length', buf.length);
       request.response.write(buf);
     }

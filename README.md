@@ -1,4 +1,4 @@
-# SLP Parser for Dart
+# Slp parser for dart
 
 This package is for parsing [Simple Ledger Protocol (SLP)](https://github.com/simpleledger/slp-specifications) metadata. TokenType1 and NFT1 tokens are supported.
 
